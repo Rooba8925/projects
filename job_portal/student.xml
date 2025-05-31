@@ -1,0 +1,18 @@
+<xml>
+<users>
+<user info>
+<name>Rooba.B</name>
+<mail id>rooba@gmailcom</mail id>
+<password>12345</password>
+<role>jobseeker</role>
+<name>Sadhana.G</name>
+<mail id>sadhana@gmailcom</mail id>
+<password>2345</password>
+<role>jobseeker</role>
+<name>Baskaran.M</name>
+<mail id>baskaran@gmailcom</mail id>
+<password>3456</password>
+<role>employer</role>
+</user info>
+</users>
+</xml>
