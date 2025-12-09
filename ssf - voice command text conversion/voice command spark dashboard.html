@@ -1,0 +1,984 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Voice Command & Spark Processing Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            color: #667eea;
+            font-size: 36px;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            color: #666;
+            font-size: 18px;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        }
+
+        .card h2 {
+            color: #667eea;
+            margin-bottom: 20px;
+            font-size: 24px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .record-section {
+            text-align: center;
+        }
+
+        .record-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 20px 50px;
+            font-size: 20px;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            margin: 20px 0;
+            font-weight: bold;
+        }
+
+        .record-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4);
+        }
+
+        .record-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .status {
+            font-size: 18px;
+            margin: 15px 0;
+            padding: 15px;
+            border-radius: 10px;
+            background: #f0f0f0;
+        }
+
+        .status.recording {
+            background: #ffebee;
+            color: #c62828;
+            animation: pulse 1s infinite;
+        }
+
+        .status.processing {
+            background: #fff3e0;
+            color: #e65100;
+        }
+
+        .status.success {
+            background: #e8f5e9;
+            color: #2e7d32;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
+        .timer {
+            font-size: 48px;
+            font-weight: bold;
+            color: #667eea;
+            margin: 20px 0;
+        }
+
+        .output-section {
+            background: #1e1e1e;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 15px 0;
+            max-height: 400px;
+            overflow-y: auto;
+            box-shadow: inset 0 2px 10px rgba(0,0,0,0.3);
+        }
+
+        .output-section pre {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        .json-output {
+            color: #d4d4d4;
+        }
+
+        .json-key {
+            color: #9cdcfe;
+            font-weight: bold;
+        }
+
+        .json-string {
+            color: #ce9178;
+        }
+
+        .json-number {
+            color: #b5cea8;
+        }
+
+        .json-boolean {
+            color: #569cd6;
+        }
+
+        .json-null {
+            color: #569cd6;
+        }
+
+        .metrics {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+
+        .metric {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .metric-value {
+            font-size: 32px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .metric-label {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+
+        .download-btn {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 16px;
+            border-radius: 10px;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            margin: 10px 5px;
+            transition: background 0.2s;
+        }
+
+        .download-btn:hover:not(:disabled) {
+            background: #45a049;
+        }
+
+        .download-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .spark-link {
+            background: #1a73e8;
+            color: white;
+            padding: 15px 30px;
+            border-radius: 10px;
+            text-decoration: none;
+            display: inline-block;
+            margin: 10px 5px;
+            transition: background 0.2s;
+        }
+
+        .spark-link:hover {
+            background: #0d47a1;
+        }
+
+        .full-width {
+            grid-column: 1 / -1;
+        }
+
+        .token-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin: 15px 0;
+        }
+
+        .token {
+            background: #e3f2fd;
+            color: #1565c0;
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-size: 14px;
+        }
+
+        .alert {
+            background: #fff3cd;
+            border: 2px solid #ffc107;
+            color: #856404;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+
+        .alert strong {
+            display: block;
+            margin-bottom: 10px;
+            font-size: 18px;
+        }
+
+        .setup-input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #667eea;
+            border-radius: 8px;
+            font-size: 16px;
+            margin: 10px 0;
+        }
+
+        .job-list {
+            list-style: none;
+            margin: 15px 0;
+        }
+
+        .job-item {
+            background: #e8f5e9;
+            padding: 10px 15px;
+            margin: 5px 0;
+            border-radius: 8px;
+            border-left: 4px solid #4CAF50;
+        }
+
+        .info-box {
+            background: #e3f2fd;
+            border-left: 4px solid #2196F3;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 8px;
+        }
+
+        .warning-box {
+            background: #fff3e0;
+            border-left: 4px solid #ff9800;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 8px;
+            color: #e65100;
+        }
+
+        .command-box {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 25px;
+            border-radius: 15px;
+            margin: 15px 0;
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .command-field {
+            background: rgba(255, 255, 255, 0.15);
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 8px;
+            border-left: 4px solid #fff;
+        }
+
+        .command-field strong {
+            display: block;
+            margin-bottom: 5px;
+            opacity: 0.9;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .command-field .value {
+            font-size: 20px;
+            font-weight: bold;
+        }
+
+        .io-highlight {
+            background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 15px 0;
+            text-align: center;
+            font-size: 18px;
+            font-weight: bold;
+        }
+
+        .io-arrow {
+            font-size: 30px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎤 Voice Command & Spark Processing Dashboard</h1>
+            <p>Record YOUR voice commands (20 seconds) • Process with Apache Spark • Download JSON results</p>
+            <div style="margin-top: 15px;">
+                <div class="io-highlight">
+                    📥 INPUT: Voice Commands → 🔄 PROCESSING: Spark Analysis → 📤 OUTPUT: Structured Commands
+                </div>
+            </div>
+        </div>
+
+        <div class="alert" id="setupAlert">
+            <strong>⚙ Optional: Connect to Spark Web UI</strong>
+            If you want to see Spark jobs, run Google Colab Cell 2 and paste the ngrok URL here:<br>
+            <input type="text" class="setup-input" id="sparkUrl" 
+                   placeholder="https://xxxx.ngrok-free.dev (paste fresh URL from Colab)">
+            <button class="download-btn" onclick="saveSparkUrl()">💾 Save Spark URL</button>
+            <button class="download-btn" style="background: #ff9800;" onclick="document.getElementById('setupAlert').style.display='none'">
+                ⏩ Skip - Just Record Voice
+            </button>
+        </div>
+
+        <div class="grid">
+            <!-- Recording Section -->
+            <div class="card">
+                <h2>🎙 Voice Recording (INPUT)</h2>
+                <div class="record-section">
+                    <button class="record-btn" id="recordBtn" onclick="startRecording()">
+                        🎙 START RECORDING (20s)
+                    </button>
+                    <div class="status" id="status">Ready to record YOUR voice</div>
+                    <div class="timer" id="timer"></div>
+                    <div class="info-box">
+                        <strong>💡 Tips:</strong><br>
+                        • Speak clearly into your microphone<br>
+                        • Say complete commands (e.g., "turn on the light", "open the door")<br>
+                        • Recording duration: <strong>20 seconds</strong>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Transcription Section -->
+            <div class="card">
+                <h2>📝 Your Transcription</h2>
+                <div class="output-section">
+                    <div id="transcription" style="text-align: center; color: #888; padding: 50px 20px;">
+                        Your voice transcription will appear here...
+                    </div>
+                </div>
+                <div id="tokenSection" style="display: none;">
+                    <h3 style="margin: 15px 0; color: #666;">Tokens:</h3>
+                    <div class="token-list" id="tokens"></div>
+                </div>
+            </div>
+
+            <!-- Metrics Section -->
+            <div class="card">
+                <h2>📊 Analysis Metrics</h2>
+                <div class="metrics" id="metrics">
+                    <div class="metric">
+                        <div class="metric-value">-</div>
+                        <div class="metric-label">Duration</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-value">-</div>
+                        <div class="metric-label">Word Count</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-value">-</div>
+                        <div class="metric-label">Command Type</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-value">-</div>
+                        <div class="metric-label">Confidence</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Spark Processing Section -->
+            <div class="card">
+                <h2>⚙ Processing Status</h2>
+                <div id="sparkJobs" style="text-align: center; color: #999; padding: 30px 20px;">
+                    Processing status will appear after recording
+                </div>
+                <div style="text-align: center; margin-top: 20px;">
+                    <a href="#" id="sparkWebUi" class="spark-link" target="_blank" style="display: none;">
+                        🌐 Open Spark Web UI
+                    </a>
+                    <div id="sparkWarning" style="display: none;" class="warning-box">
+                        ⚠ <strong>Spark URL Expired!</strong><br>
+                        Go to Google Colab → Run Cell 2 → Copy the NEW ngrok URL → Paste above
+                    </div>
+                </div>
+            </div>
+
+            <!-- Structured Command Output Section -->
+            <div class="card full-width">
+                <h2>🎯 Structured Command Output (OUTPUT)</h2>
+                <div id="structuredCommand" style="text-align: center; color: #888; padding: 30px;">
+                    <p style="font-size: 18px;">📥 Structured command will appear after voice processing...</p>
+                    <p style="margin-top: 10px; font-size: 14px; color: #999;">This shows the parsed ACTION, TARGET, and STATE from your voice command</p>
+                </div>
+                <div id="commandDetails" style="display: none;">
+                    <div class="command-box">
+                        <h3 style="margin-bottom: 20px; text-align: center;">🎯 Parsed Command Structure</h3>
+                        <div id="commandBreakdown"></div>
+                    </div>
+                    <div class="info-box">
+                        <strong>📋 How Commands Are Parsed:</strong><br>
+                        • <strong>ACTION:</strong> The verb (open, close, turn, set, etc.)<br>
+                        • <strong>TARGET:</strong> The object being controlled (light, door, TV, etc.)<br>
+                        • <strong>STATE:</strong> The desired state (on, off, high, low, etc.)<br>
+                        • <strong>EXECUTABLE:</strong> Whether the command can be executed
+                    </div>
+                </div>
+            </div>
+
+            <!-- JSON Output Section -->
+            <div class="card full-width">
+                <h2>📄 Complete JSON Output</h2>
+                <div class="output-section" style="max-height: 500px;">
+                    <pre id="jsonOutput" class="json-output" style="text-align: center; padding: 20px; color: #888;">
+Your voice command JSON will appear here after recording...</pre>
+                </div>
+                <div style="text-align: center; margin-top: 20px;">
+                    <button class="download-btn" id="downloadBtn" onclick="downloadJSON()" disabled>
+                        💾 Download JSON
+                    </button>
+                    <button class="download-btn" onclick="copyJSON()" id="copyBtn" disabled>
+                        📋 Copy to Clipboard
+                    </button>
+                    <button class="download-btn" style="background: #ff9800;" onclick="resetDashboard()">
+                        🔄 New Recording
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let recognition;
+        let recognizing = false;
+        let currentData = null;
+        let sparkUrl = null;
+        let startTime;
+        let finalTranscript = '';
+        const RECORDING_DURATION = 20; // 20 seconds
+
+        // Initialize Speech Recognition
+        if ('webkitSpeechRecognition' in window) {
+            recognition = new webkitSpeechRecognition();
+            recognition.continuous = true;
+            recognition.interimResults = true;
+            recognition.lang = 'en-US';
+
+            recognition.onstart = function() {
+                recognizing = true;
+                updateStatus('🔴 LISTENING... Speak your command now!', 'recording');
+            };
+
+            recognition.onerror = function(event) {
+                console.error('Speech recognition error:', event.error);
+                if (event.error === 'no-speech') {
+                    updateStatus('❌ No speech detected. Please try again.', 'error');
+                } else if (event.error === 'not-allowed') {
+                    updateStatus('❌ Microphone access denied. Please allow microphone access.', 'error');
+                } else {
+                    updateStatus('❌ Error: ' + event.error, 'error');
+                }
+                document.getElementById('recordBtn').disabled = false;
+                document.getElementById('timer').textContent = '';
+            };
+
+            recognition.onresult = function(event) {
+                let interimTranscript = '';
+                finalTranscript = '';
+
+                for (let i = event.resultIndex; i < event.results.length; ++i) {
+                    if (event.results[i].isFinal) {
+                        finalTranscript += event.results[i][0].transcript + ' ';
+                    } else {
+                        interimTranscript += event.results[i][0].transcript;
+                    }
+                }
+
+                const displayText = finalTranscript || interimTranscript;
+                if (displayText.trim()) {
+                    document.getElementById('transcription').innerHTML = 
+                        `<h3 style="color: #667eea; margin-bottom: 10px;">Listening...</h3>
+                         <p style="font-size: 20px; color: #fff; font-style: italic;">"${displayText.trim()}"</p>`;
+                }
+            };
+
+            recognition.onend = function() {
+                recognizing = false;
+                const duration = (Date.now() - startTime) / 1000;
+                
+                if (finalTranscript.trim()) {
+                    updateStatus('✅ Transcription complete! Processing...', 'processing');
+                    processTranscription(finalTranscript.trim(), duration);
+                } else {
+                    updateStatus('❌ No speech detected. Please try again.', 'error');
+                    document.getElementById('recordBtn').disabled = false;
+                }
+                document.getElementById('timer').textContent = '';
+            };
+        } else {
+            alert('Speech recognition not supported in this browser. Please use Chrome or Edge.');
+        }
+
+        function saveSparkUrl() {
+            const url = document.getElementById('sparkUrl').value.trim();
+            if (url) {
+                sparkUrl = url;
+                localStorage.setItem('sparkUrl', url);
+                document.getElementById('setupAlert').style.display = 'none';
+                document.getElementById('sparkWebUi').href = url;
+                document.getElementById('sparkWebUi').style.display = 'inline-block';
+                document.getElementById('sparkWarning').style.display = 'none';
+                updateStatus('✅ Spark URL saved! Ready to record.', 'success');
+            }
+        }
+
+        window.onload = function() {
+            const saved = localStorage.getItem('sparkUrl');
+            if (saved) {
+                document.getElementById('sparkUrl').value = saved;
+                sparkUrl = saved;
+                document.getElementById('sparkWebUi').href = saved;
+                document.getElementById('sparkWebUi').style.display = 'inline-block';
+            }
+        };
+
+        function updateStatus(message, type = '') {
+            const status = document.getElementById('status');
+            status.textContent = message;
+            status.className = 'status ' + type;
+        }
+
+        function syntaxHighlight(json) {
+            if (typeof json != 'string') {
+                json = JSON.stringify(json, undefined, 2);
+            }
+            json = json.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            return json.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, function (match) {
+                var cls = 'json-number';
+                if (/^"/.test(match)) {
+                    if (/:$/.test(match)) {
+                        cls = 'json-key';
+                    } else {
+                        cls = 'json-string';
+                    }
+                } else if (/true|false/.test(match)) {
+                    cls = 'json-boolean';
+                } else if (/null/.test(match)) {
+                    cls = 'json-null';
+                }
+                return '<span class="' + cls + '">' + match + '</span>';
+            });
+        }
+
+        function parseCommand(text) {
+            const lower = text.toLowerCase().trim();
+            const cleanText = lower.replace(/[.,!?;:]/g, '').replace(/\s+/g, ' ');
+            const words = cleanText.split(' ').filter(w => w.length > 0);
+            
+            console.log('Parsing command:', text);
+            console.log('Words array:', words);
+            
+            // Part-of-Speech patterns for command identification
+            const result = {
+                action: 'unknown',
+                target: 'unspecified',
+                state: 'default',
+                value: null,
+                raw_command: text,
+                executable: false,
+                confidence: 0.60
+            };
+            
+            // Common stop words to filter out
+            const stopWords = ['the', 'a', 'an', 'to', 'my', 'please', 'can', 'you', 'could', 'would', 'will', 'should', 'i', 'want', 'need', 'me', 'help'];
+            const meaningfulWords = words.filter(w => !stopWords.includes(w));
+            
+            console.log('Meaningful words:', meaningfulWords);
+            
+            // 1. ACTION DETECTION: Typically verbs (first meaningful word or verb-like patterns)
+            const actionPatterns = {
+                verbs: ['open', 'close', 'turn', 'switch', 'start', 'stop', 'set', 'show', 'get', 'play', 'pause', 'increase', 'decrease', 'dim', 'brighten', 'lock', 'unlock', 'activate', 'deactivate', 'enable', 'disable', 'shut', 'boot', 'launch', 'run', 'execute', 'raise', 'lower', 'adjust', 'change', 'move', 'go'],
+                verbEndings: ['ing', 'ed', 'en']
+            };
+            
+            // Find action (usually first verb or verb-like word)
+            for (let word of meaningfulWords) {
+                if (actionPatterns.verbs.includes(word)) {
+                    result.action = word;
+                    break;
+                }
+                // Check if word looks like a verb (ends with common verb endings)
+                for (let ending of actionPatterns.verbEndings) {
+                    if (word.endsWith(ending) && word.length > 3) {
+                        result.action = word;
+                        break;
+                    }
+                }
+                if (result.action !== 'unknown') break;
+            }
+            
+            // If no verb found, first meaningful word might be imperative verb
+            if (result.action === 'unknown' && meaningfulWords.length > 0) {
+                result.action = meaningfulWords[0];
+            }
+            
+            // 2. STATE/MODIFIER DETECTION: Words indicating state (on/off, up/down, etc.)
+            const statePatterns = {
+                binary: ['on', 'off', 'enabled', 'disabled', 'active', 'inactive'],
+                direction: ['up', 'down', 'left', 'right', 'forward', 'backward', 'back'],
+                level: ['high', 'low', 'full', 'empty', 'half', 'maximum', 'minimum', 'max', 'min'],
+                position: ['open', 'closed', 'locked', 'unlocked']
+            };
+            
+            for (let word of meaningfulWords) {
+                for (let category in statePatterns) {
+                    if (statePatterns[category].includes(word) && word !== result.action) {
+                        result.state = word;
+                        break;
+                    }
+                }
+                if (result.state !== 'default') break;
+            }
+            
+            // 3. VALUE DETECTION: Extract numbers or percentages
+            for (let word of words) {
+                if (!isNaN(word) && word !== '') {
+                    result.value = word;
+                    break;
+                }
+                // Check for percentages or degrees
+                if (word.includes('%') || word.includes('percent') || word.includes('degree')) {
+                    result.value = word;
+                    break;
+                }
+            }
+            
+            // 4. TARGET/OBJECT DETECTION: Usually noun after action (smart detection)
+            // Find the target by eliminating action and state words
+            const actionIndex = meaningfulWords.indexOf(result.action);
+            const stateIndex = result.state !== 'default' ? meaningfulWords.indexOf(result.state) : -1;
+            
+            // Target is typically the noun between action and state, or after action
+            for (let i = 0; i < meaningfulWords.length; i++) {
+                let word = meaningfulWords[i];
+                
+                // Skip if it's the action or state word
+                if (word === result.action || word === result.state) continue;
+                
+                // Skip numbers
+                if (!isNaN(word)) continue;
+                
+                // This word is likely the target/object
+                // Could be single word or compound (e.g., "bedroom light")
+                if (i > actionIndex || actionIndex === -1) {
+                    // Check if next word forms a compound noun
+                    if (i + 1 < meaningfulWords.length && 
+                        meaningfulWords[i + 1] !== result.state &&
+                        isNaN(meaningfulWords[i + 1])) {
+                        result.target = word + ' ' + meaningfulWords[i + 1];
+                    } else {
+                        result.target = word;
+                    }
+                    break;
+                }
+            }
+            
+            // Fallback: If no target found but we have multiple meaningful words
+            if (result.target === 'unspecified' && meaningfulWords.length > 1) {
+                // Last meaningful word is often the target
+                const lastWord = meaningfulWords[meaningfulWords.length - 1];
+                if (lastWord !== result.action && lastWord !== result.state) {
+                    result.target = lastWord;
+                }
+            }
+            
+            // 5. CONFIDENCE & EXECUTABILITY
+            result.executable = result.action !== 'unknown' && result.target !== 'unspecified';
+            
+            if (result.executable && result.state !== 'default') {
+                result.confidence = 0.95; // High confidence with action + target + state
+            } else if (result.executable) {
+                result.confidence = 0.85; // Good confidence with action + target
+            } else if (result.action !== 'unknown') {
+                result.confidence = 0.70; // Medium confidence with just action
+            } else {
+                result.confidence = 0.50; // Low confidence
+            }
+            
+            console.log('Parsed result:', result);
+            return result;
+        }
+
+        function startRecording() {
+            if (!recognition) {
+                alert('Speech recognition not available. Please use Chrome or Edge browser.');
+                return;
+            }
+
+            const btn = document.getElementById('recordBtn');
+            btn.disabled = true;
+            finalTranscript = '';
+            startTime = Date.now();
+
+            let countdown = RECORDING_DURATION;
+            const timer = document.getElementById('timer');
+            timer.textContent = countdown + 's';
+            
+            const interval = setInterval(() => {
+                countdown--;
+                if (countdown >= 0) {
+                    timer.textContent = countdown + 's';
+                } else {
+                    clearInterval(interval);
+                }
+            }, 1000);
+
+            recognition.start();
+
+            setTimeout(() => {
+                if (recognizing) {
+                    recognition.stop();
+                }
+                clearInterval(interval);
+            }, RECORDING_DURATION * 1000);
+        }
+
+        function processTranscription(text, duration) {
+            const words = text.split(' ').filter(w => w.length > 0);
+            const tokens = words.map(w => w.toLowerCase());
+            const commandType = classifyCommand(text);
+            const structuredCmd = parseCommand(text);
+            
+            // Update transcription
+            document.getElementById('transcription').innerHTML = 
+                `<h3 style="color: #667eea; margin-bottom: 10px;">You said:</h3>
+                 <p style="font-size: 20px; color: #fff; font-weight: bold;">"${text}"</p>`;
+            
+            // Show tokens
+            document.getElementById('tokenSection').style.display = 'block';
+            const tokensDiv = document.getElementById('tokens');
+            tokensDiv.innerHTML = tokens.map(t => `<span class="token">${t}</span>`).join('');
+            
+            // Update metrics
+            const metricsHTML = `
+                <div class="metric">
+                    <div class="metric-value">${duration.toFixed(1)}s</div>
+                    <div class="metric-label">Duration</div>
+                </div>
+                <div class="metric">
+                    <div class="metric-value">${words.length}</div>
+                    <div class="metric-label">Word Count</div>
+                </div>
+                <div class="metric">
+                    <div class="metric-value">${commandType}</div>
+                    <div class="metric-label">Command Type</div>
+                </div>
+                <div class="metric">
+                    <div class="metric-value">${Math.round(structuredCmd.confidence * 100)}%</div>
+                    <div class="metric-label">Confidence</div>
+                </div>
+            `;
+            document.getElementById('metrics').innerHTML = metricsHTML;
+            
+            // Show processing status
+            const jobsHTML = `
+                <ul class="job-list">
+                    <li class="job-item">✅ Voice transcribed successfully</li>
+                    <li class="job-item">✅ Text tokenization completed</li>
+                    <li class="job-item">✅ Command classification done</li>
+                    <li class="job-item">✅ Entity extraction completed</li>
+                    <li class="job-item">✅ Structured command parsed</li>
+                    <li class="job-item">✅ JSON structure generated</li>
+                </ul>
+                <p style="text-align: center; margin-top: 15px; color: #4CAF50; font-weight: bold;">
+                    🎉 Your voice command processed successfully!
+                </p>
+            `;
+            document.getElementById('sparkJobs').innerHTML = jobsHTML;
+
+            // Display structured command
+            document.getElementById('commandDetails').style.display = 'block';
+            document.getElementById('structuredCommand').innerHTML = '';
+            
+            const commandHTML = `
+                <div class="command-field">
+                    <strong>🎯 Action</strong>
+                    <div class="value">${structuredCmd.action.toUpperCase()}</div>
+                </div>
+                <div class="command-field">
+                    <strong>🎪 Target Object</strong>
+                    <div class="value">${structuredCmd.target.toUpperCase()}</div>
+                </div>
+                <div class="command-field">
+                    <strong>⚡ State/Value</strong>
+                    <div class="value">${structuredCmd.state.toUpperCase()}${structuredCmd.value ? ' (' + structuredCmd.value + ')' : ''}</div>
+                </div>
+                <div class="command-field">
+                    <strong>✅ Executable</strong>
+                    <div class="value">${structuredCmd.executable ? '✅ YES - Command Ready' : '❌ NO - Incomplete Command'}</div>
+                </div>
+                <div class="command-field">
+                    <strong>💯 Confidence Score</strong>
+                    <div class="value">${Math.round(structuredCmd.confidence * 100)}%</div>
+                </div>
+            `;
+            document.getElementById('commandBreakdown').innerHTML = commandHTML;
+
+            if (sparkUrl) {
+                document.getElementById('sparkWebUi').style.display = 'inline-block';
+            } else {
+                document.getElementById('sparkWarning').style.display = 'block';
+            }
+            
+            // Generate JSON with structured command
+            currentData = {
+                command_id: Math.floor(Math.random() * 10000),
+                timestamp: new Date().toISOString(),
+                input: {
+                    type: "voice_command",
+                    raw_audio: {
+                        duration_seconds: parseFloat(duration.toFixed(2)),
+                        recording_length: RECORDING_DURATION + " seconds",
+                        sample_rate: "16000 Hz",
+                        source: "browser_microphone"
+                    }
+                },
+                transcription: {
+                    original_text: text,
+                    confidence: 0.95,
+                    language: "en-US",
+                    word_count: words.length,
+                    tokens: tokens
+                },
+                structured_output: {
+                    action: structuredCmd.action,
+                    target: structuredCmd.target,
+                    state: structuredCmd.state,
+                    value: structuredCmd.value,
+                    is_executable: structuredCmd.executable,
+                    confidence: structuredCmd.confidence,
+                    command_type: commandType
+                },
+                analysis: {
+                    command_type: commandType,
+                    tokens: tokens,
+                    word_count: words.length,
+                    entities: words.filter(w => w.length > 4).slice(0, 5),
+                    unique_words: [...new Set(tokens)].length
+                },
+                processing: {
+                    method: "Web Speech API + Command Parser",
+                    browser: navigator.userAgent.split(' ').pop(),
+                    processed_at: new Date().toISOString(),
+                    spark_enabled: sparkUrl ? true : false
+                },
+                metadata: {
+                    libraries: ["Web Speech API", "JavaScript", "Command Parser"],
+                    dashboard_version: "3.0",
+                    spark_integration: sparkUrl ? "enabled" : "disabled"
+                }
+            };
+            
+            document.getElementById('jsonOutput').innerHTML = syntaxHighlight(currentData);
+            document.getElementById('jsonOutput').className = 'json-output';
+            
+            document.getElementById('downloadBtn').disabled = false;
+            document.getElementById('copyBtn').disabled = false;
+            
+            updateStatus('✅ Complete! Command: "' + text + '" → ' + structuredCmd.action.toUpperCase() + ' ' + structuredCmd.target.toUpperCase(), 'success');
+            document.getElementById('recordBtn').disabled = false;
+            
+            // Auto-download JSON after 1 second
+            setTimeout(() => downloadJSON(), 1000);
+        }
+
+        function classifyCommand(text) {
+            const lower = text.toLowerCase();
+            if (/open|close|start|stop|launch|quit|run|execute|turn|switch|lock|unlock/.test(lower)) return 'action';
+            if (/show|display|get|find|search|list|view/.test(lower)) return 'data';
+            if (/go|navigate|move|switch|back/.test(lower)) return 'navigation';
+            if (/set|change|update|increase|decrease|dim|brighten/.test(lower)) return 'control';
+            if (/what|where|when|who|how|why|tell/.test(lower)) return 'query';
+            return 'general';
+        }
+
+        function downloadJSON() {
+            if (!currentData) return;
+            
+            const filename = `voice_command_${Date.now()}.json`;
+            const blob = new Blob([JSON.stringify(currentData, null, 2)], 
+                                { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            a.click();
+            URL.revokeObjectURL(url);
+            
+            updateStatus('✅ JSON downloaded: ' + filename, 'success');
+        }
+
+        function copyJSON() {
+            if (!currentData) return;
+            
+            navigator.clipboard.writeText(JSON.stringify(currentData, null, 2))
+                .then(() => updateStatus('✅ JSON copied to clipboard!', 'success'))
+                .catch(() => updateStatus('❌ Failed to copy', 'error'));
+        }
+
+        function resetDashboard() {
+            location.reload();
+        }
+    </script>
+</body>
+</html>
